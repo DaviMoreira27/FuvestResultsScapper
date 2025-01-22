@@ -1,7 +1,11 @@
-const { Builder, By } = require('selenium-webdriver');
+import { Builder, By } from 'selenium-webdriver';
+import { Options } from 'selenium-webdriver/firefox.js';
+import open from 'open';
+import fs from 'fs';
 
 (async function fetchMaxIdPost() {
-    let driver = await new Builder().forBrowser('firefox').build();
+    let driver = await new Builder().forBrowser('firefox').setFirefoxOptions((new Options().addArguments('--headless'))).build();
+    const lastResultFile = 'last_result.json';
 
     try {
         const url = "https://www.fuvest.br/category/fuvest/vestibular-2025/";
@@ -26,11 +30,23 @@ const { Builder, By } = require('selenium-webdriver');
                 maxTitle = title;
                 maxLink = link;
             }
-        }    // Configurar o driver do Firefox
+        }
 
+        let lastResult = null;
+        if (fs.existsSync(lastResultFile)) {
+            lastResult = JSON.parse(fs.readFileSync(lastResultFile, 'utf8'));
+        }
 
-        console.log(`Título do post com o maior ID (${maxId}): ${maxTitle}`);
-        console.log(`Link: ${maxLink}`);
+        const currentResult = { id: maxId, title: maxTitle, link: maxLink };
+
+        if (!lastResult || lastResult.id !== currentResult.id) {
+            fs.writeFileSync(lastResultFile, JSON.stringify(currentResult), 'utf8');
+
+            console.log(`Título do post com o maior ID (${maxId}): ${maxTitle}`);
+            console.log(`Link: ${maxLink}`);
+
+            open(maxLink);
+        }
     } finally {
         await driver.quit();
     }
